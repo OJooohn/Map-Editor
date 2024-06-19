@@ -26,18 +26,18 @@ public class MapEditor extends JFrame {
     private int viewY = 0; // Coordenada Y da visão
     private int previewX = -1;
     private int previewY = -1;
+    private int startX = -1; // Coordenada X do início do arrasto
+    private int startY = -1; // Coordenada Y do início do arrasto
+    private int currentX = -1; // Coordenada X atual durante o arrasto
+    private int currentY = -1; // Coordenada Y atual durante o arrasto
     private JLabel positionLabel; // Label para mostrar as coordenadas
     private JTextArea logTextArea; // TextArea para mostrar os logs
+    private boolean isLeftMouseButton = false; // Estado do botão esquerdo do mouse
+    private boolean isRightMouseButton = false; // Estado do botão direito do mouse
+    private boolean isCtrlPressed = false; // Estado da tecla Ctrl
 
     public MapEditor() {
         super("Map Editor");
-
-        String userHome = System.getProperty("user.home");
-
-        String desktopPath = userHome + File.separator + "Desktop";
-
-        System.out.println("Diretorio da area de trabalho: " + desktopPath);
-
         setResizable(false);
         setLayout(new BorderLayout());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -45,12 +45,11 @@ public class MapEditor extends JFrame {
         map = new char[mapWidth][mapHeight];
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
-                if((x == 0 || y == 0) || (x == (mapWidth - 1) || y == (mapHeight - 1)))
-                    map[x][y] = (char) 171;
-                else
                     map[x][y] = (char) 0;
             }
         }
+        // White Default Border
+        fillBorder((char)171);
 
         // Configurar o painel AsciiPanel
         terminal = new AsciiPanel(panelWidth, panelHeight, AsciiFont.CP437_16x16);
@@ -124,7 +123,7 @@ public class MapEditor extends JFrame {
         positionLabel.setVerticalAlignment(SwingConstants.CENTER); // Centraliza o texto verticalmente
         positionLabel.setForeground(Color.WHITE);
         try {
-            InputStream is = getClass().getResourceAsStream("/Inter-Regular.ttf");
+            InputStream is = getClass().getResourceAsStream("/SpaceMono-Regular.ttf");
             Font unispaceFont = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(15f);
             positionLabel.setFont(unispaceFont);
         } catch (FontFormatException | IOException e) {
@@ -146,20 +145,44 @@ public class MapEditor extends JFrame {
         logTextArea.setBackground(Color.BLACK);
         logTextArea.setForeground(Color.WHITE);
         try {
-            InputStream is = getClass().getResourceAsStream("/Inter-Regular.ttf");
-            Font unispaceFont = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(16f);
+            InputStream is = getClass().getResourceAsStream("/SpaceMono-Regular.ttf");
+            Font unispaceFont = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(12f);
             logTextArea.setFont(unispaceFont);
         } catch (FontFormatException | IOException e) {
             e.printStackTrace();
         }
-        logTextArea.append("Controls:\n");
+        logTextArea.append("-------------- MOVE MAP -------------\n");
+        logTextArea.append("\n");
         logTextArea.append("W - Move Up\n");
         logTextArea.append("A - Move Left\n");
         logTextArea.append("S - Move Down\n");
         logTextArea.append("D - Move Right\n");
+        logTextArea.append("\n");
+
+        logTextArea.append("------------- MAP UTILITY ------------\n");
+        logTextArea.append("\n");
         logTextArea.append("ENTER - Save Map\n");
+        logTextArea.append("\n");
+
+        logTextArea.append("--------- CHARACTER UTILITY ---------\n");
+        logTextArea.append("\n");
+        logTextArea.append("Q - Change Character Border\n");
+        logTextArea.append("\n");
+        logTextArea.append("-----------------------------------------\n");
+        logTextArea.append("\n");
         logTextArea.append("Left Click - Add Character\n");
+        logTextArea.append("Hold - Add Border Square\n");
+        logTextArea.append("+ CTRL - Add Full Square\n");
+        logTextArea.append("\n");
+        logTextArea.append("-----------------------------------------\n");
+        logTextArea.append("\n");
+        logTextArea.append("Mid Click - Select Character In Position\n");
+        logTextArea.append("\n");
+        logTextArea.append("-----------------------------------------\n");
+        logTextArea.append("\n");
         logTextArea.append("Right Click - Remove Character\n");
+        logTextArea.append("Hold - Delete in Square\n");
+
 
         JScrollPane logScrollPane = new JScrollPane(logTextArea);
         logScrollPane.setBorder(new LineBorder(Color.BLACK, 1));
@@ -176,6 +199,61 @@ public class MapEditor extends JFrame {
         // Adicionar ouvinte de mouse para o painel AsciiPanel
         terminal.addMouseListener(new MouseAdapter() {
             @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    startX = e.getX() / terminal.getCharWidth() + viewX;
+                    startY = e.getY() / terminal.getCharHeight() + viewY;
+                    isLeftMouseButton = true;
+                    isRightMouseButton = false;
+                } else if (SwingUtilities.isRightMouseButton(e)) {
+                    startX = e.getX() / terminal.getCharWidth() + viewX;
+                    startY = e.getY() / terminal.getCharHeight() + viewY;
+                    isLeftMouseButton = false;
+                    isRightMouseButton = true;
+                } else  if (SwingUtilities.isRightMouseButton(e) && SwingUtilities.isLeftMouseButton(e)) {
+                    startX = e.getX() / terminal.getCharWidth() + viewX;
+                    startY = e.getY() / terminal.getCharHeight() + viewY;
+                    isLeftMouseButton = true;
+                    isRightMouseButton = true;
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (isCtrlPressed && isLeftMouseButton) {
+                    int endX = e.getX() / terminal.getCharWidth() + viewX;
+                    int endY = e.getY() / terminal.getCharHeight() + viewY;
+                    drawRectangleFull(startX, startY, endX, endY);
+                    startX = -1;
+                    startY = -1;
+                    currentX = -1;
+                    currentY = -1;
+                    isCtrlPressed = false;
+                    renderView();
+                } else if (isLeftMouseButton && startX >= 0 && startY >= 0) {
+                    int endX = e.getX() / terminal.getCharWidth() + viewX;
+                    int endY = e.getY() / terminal.getCharHeight() + viewY;
+                    drawRectangle(startX, startY, endX, endY);
+                    startX = -1;
+                    startY = -1;
+                    currentX = -1;
+                    currentY = -1;
+                    isLeftMouseButton = false;
+                    renderView();
+                } else if (isRightMouseButton && startX >= 0 && startY >= 0) {
+                    int endX = e.getX() / terminal.getCharWidth() + viewX;
+                    int endY = e.getY() / terminal.getCharHeight() + viewY;
+                    deleteInRectangle(startX, startY, endX, endY);
+                    startX = -1;
+                    startY = -1;
+                    currentX = -1;
+                    currentY = -1;
+                    isRightMouseButton = false;
+                    renderView();
+                }
+            }
+
+            @Override
             public void mouseClicked(MouseEvent e) {
                 int x = e.getX() / terminal.getCharWidth() + viewX;
                 int y = e.getY() / terminal.getCharHeight() + viewY;
@@ -184,6 +262,8 @@ public class MapEditor extends JFrame {
                         map[x][y] = selectedChar;
                     } else if (SwingUtilities.isRightMouseButton(e)) {
                         map[x][y] = 0;
+                    } else  if (SwingUtilities.isMiddleMouseButton(e)) {
+                        selectedChar = map[x][y];
                     }
                     renderView();
                 }
@@ -210,6 +290,15 @@ public class MapEditor extends JFrame {
                     renderView();
                 }
             }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (startX >= 0 && startY >= 0) {
+                    currentX = e.getX() / terminal.getCharWidth() + viewX;
+                    currentY = e.getY() / terminal.getCharHeight() + viewY;
+                    renderView();
+                }
+            }
         });
 
         // Adicionar ouvinte de teclado para movimentação e criação do objeto World
@@ -229,6 +318,12 @@ public class MapEditor extends JFrame {
                     case KeyEvent.VK_D: // Move right
                         if (viewX < mapWidth - panelWidth) viewX++;
                         break;
+                    case KeyEvent.VK_Q:
+                        fillBorder(selectedChar);
+                        break;
+                    case KeyEvent.VK_CONTROL: // Ctrl key pressed
+                        isCtrlPressed = true;
+                        break;
                     case KeyEvent.VK_ESCAPE:
                         System.exit(0);
                         break;
@@ -244,10 +339,35 @@ public class MapEditor extends JFrame {
             }
         });
 
+        terminal.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_CONTROL: // Ctrl key pressed
+                        isCtrlPressed = false;
+                        break;
+                }
+                // Limpar as coordenadas de pré-visualização ao mover a matriz
+                previewX = -1;
+                previewY = -1;
+                updatePositionLabel(-1, -1);
+                renderView();
+            }
+        });
+
         pack();
         setVisible(true);
         terminal.requestFocusInWindow(); // Certificar-se de que o terminal está em foco
         renderView();
+    }
+
+    public void fillBorder(char character){
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
+                if ((x == 0 || y == 0) || (x == (mapWidth - 1) || y == (mapHeight - 1)))
+                    map[x][y] = character;
+            }
+        }
     }
 
     private void updatePositionLabel(int x, int y) {
@@ -271,28 +391,119 @@ public class MapEditor extends JFrame {
         if (previewX >= 0 && previewY >= 0 && previewX < mapWidth && previewY < mapHeight) {
             terminal.write(selectedChar, previewX - viewX, previewY - viewY, Color.LIGHT_GRAY);
         }
+        // Desenhar o retângulo de pré-visualização
+        if (startX >= 0 && startY >= 0 && currentX >= 0 && currentY >= 0) {
+            if (isLeftMouseButton) {
+                drawPreviewRectangle(startX, startY, currentX, currentY, selectedChar, false);
+            } else if (isRightMouseButton) {
+                drawPreviewRectangle(startX, startY, currentX, currentY, (char) 0, true);
+            }
+        }
         terminal.repaint();
         terminal.requestFocusInWindow(); // Certificar-se de que o terminal está em foco após cada atualização
+    }
+
+    private void drawRectangle(int startX, int startY, int endX, int endY) {
+        int minX = Math.min(startX, endX);
+        int maxX = Math.max(startX, endX);
+        int minY = Math.min(startY, endY);
+        int maxY = Math.max(startY, endY);
+
+        for (int x = minX; x <= maxX; x++) {
+            if (x < mapWidth && minY < mapHeight) {
+                map[x][minY] = selectedChar;
+            }
+            if (x < mapWidth && maxY < mapHeight) map[x][maxY] = selectedChar;
+        }
+
+        for (int y = minY; y <= maxY; y++) {
+            if (minX < mapWidth && y < mapHeight) map[minX][y] = selectedChar;
+            if (maxX < mapWidth && y < mapHeight) map[maxX][y] = selectedChar;
+        }
+    }
+
+    private void drawRectangleFull(int startX, int startY, int endX, int endY) {
+        int minX = Math.min(startX, endX);
+        int maxX = Math.max(startX, endX);
+        int minY = Math.min(startY, endY);
+        int maxY = Math.max(startY, endY);
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (x < mapWidth && y < mapHeight) {
+                    map[x][y] = selectedChar;
+                }
+            }
+        }
+    }
+
+    private void deleteInRectangle(int startX, int startY, int endX, int endY) {
+        int minX = Math.min(startX, endX);
+        int maxX = Math.max(startX, endX);
+        int minY = Math.min(startY, endY);
+        int maxY = Math.max(startY, endY);
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (x < mapWidth && y < mapHeight) {
+                    map[x][y] = (char) 0;
+                }
+            }
+        }
+    }
+
+    private void drawPreviewRectangle(int startX, int startY, int endX, int endY, char previewChar, boolean fill) {
+        int minX = Math.min(startX, endX) - viewX;
+        int maxX = Math.max(startX, endX) - viewX;
+        int minY = Math.min(startY, endY) - viewY;
+        int maxY = Math.max(startY, endY) - viewY;
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (x >= 0 && x < panelWidth && y >= 0 && y < panelHeight) {
+                    if (fill || x == minX || x == maxX || y == minY || y == maxY) {
+                        terminal.write(previewChar, x, y, Color.LIGHT_GRAY, Color.BLACK);
+                    }
+                }
+            }
+        }
     }
 
     private void createAndSaveWorld() {
         // Criação do objeto World com a largura, altura e matriz do mapa
         World world = new World(mapWidth, mapHeight);
         world.setTiles(map);
-        log("Mundo criado com sucesso!");
+
+        String userHome = System.getProperty("user.home");
+        String desktopPath = userHome + File.separator + "Desktop";
+
+        File newFolder = new File(desktopPath + "\\World");
+
+        if (!newFolder.exists()) {
+            // Tenta criar o diretório
+            if (newFolder.mkdirs()) {
+                System.out.println("Diretório criado com sucesso: " + desktopPath + "\\World");
+            } else {
+                System.out.println("Falha ao criar o diretório: " + desktopPath + "\\World");
+            }
+        }
 
         // Salvar o objeto World em um arquivo usando OutputStream
-        saveWorldToFile(world, "world.save");
+        saveWorldToFile(world, desktopPath + "\\World\\world.save");
     }
 
     private void saveWorldToFile(World world, String fileName) {
         try (FileOutputStream file = new FileOutputStream(fileName);
              ObjectOutputStream out = new ObjectOutputStream(file)) {
             out.writeObject(world);
-            log("World salvo em " + fileName);
+            showPopup("World criado e salvo com sucesso!", "O arquivo foi salvo no diretório: " + new File(fileName).getAbsolutePath());
         } catch (IOException e) {
-            log("Erro ao salvar o mundo: " + e.getMessage());
+            showPopup("Erro ao salvar o mundo: ", e.getMessage());
         }
+    }
+
+    private void showPopup(String title, String message) {
+        JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void log(String message) {
