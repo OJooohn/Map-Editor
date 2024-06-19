@@ -3,7 +3,9 @@ import asciiPanel.AsciiPanel;
 import world.World;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
@@ -25,9 +27,17 @@ public class MapEditor extends JFrame {
     private int previewX = -1;
     private int previewY = -1;
     private JLabel positionLabel; // Label para mostrar as coordenadas
+    private JTextArea logTextArea; // TextArea para mostrar os logs
 
     public MapEditor() {
         super("Map Editor");
+
+        String userHome = System.getProperty("user.home");
+
+        String desktopPath = userHome + File.separator + "Desktop";
+
+        System.out.println("Diretorio da area de trabalho: " + desktopPath);
+
         setResizable(false);
         setLayout(new BorderLayout());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -44,12 +54,11 @@ public class MapEditor extends JFrame {
 
         // Configurar o painel AsciiPanel
         terminal = new AsciiPanel(panelWidth, panelHeight, AsciiFont.CP437_16x16);
-        terminal.setBorder(new LineBorder(Color.RED, 1)); // Adiciona uma borda vermelha de 1 pixel ao terminal
         terminal.setFocusable(true);
 
         // Configurar o contêiner do terminal para garantir que a borda apareça corretamente
         JPanel terminalPanel = new JPanel(new BorderLayout());
-        terminalPanel.setBorder(new LineBorder(Color.getHSBColor(0, 0, 0.3f), 5));
+        terminalPanel.setBorder(new LineBorder(Color.getHSBColor(0.7f, 0.5f, 1), 5));
         terminalPanel.add(terminal, BorderLayout.CENTER);
 
         add(terminalPanel, BorderLayout.CENTER);
@@ -88,12 +97,13 @@ public class MapEditor extends JFrame {
             charBankPanel.add(charButton);
         }
         JScrollPane scrollPane = new JScrollPane(charBankPanel);
-        scrollPane.setBorder(new LineBorder(Color.getHSBColor(0, 0, 0.3f), 3));
 
         scrollPane.getHorizontalScrollBar().setUnitIncrement(18);
         scrollPane.getVerticalScrollBar().setUnitIncrement(18);
 
-        scrollPane.setPreferredSize(new Dimension(774, 200));
+        scrollPane.setBorder(new MatteBorder(5, 5, 5, 0, Color.getHSBColor(0.7f, 0.5f, 1)));
+
+        scrollPane.setPreferredSize(new Dimension(778, 200));
 
         scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(10, 0));
         scrollPane.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
@@ -106,25 +116,61 @@ public class MapEditor extends JFrame {
         scrollPane.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         add(scrollPane, BorderLayout.WEST);
 
-        // Adicionar painel à direita para mostrar as coordenadas
+        // Adicionar painel à direita para mostrar as coordenadas e logs
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BorderLayout());
         positionLabel = new JLabel("Position: (000, 000)");
         positionLabel.setHorizontalAlignment(SwingConstants.CENTER); // Centraliza o texto horizontalmente
         positionLabel.setVerticalAlignment(SwingConstants.CENTER); // Centraliza o texto verticalmente
-        positionLabel.setForeground(Color.GREEN);
+        positionLabel.setForeground(Color.WHITE);
         try {
-            InputStream is = getClass().getResourceAsStream("/consola.ttf");
+            InputStream is = getClass().getResourceAsStream("/Inter-Regular.ttf");
             Font unispaceFont = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(15f);
             positionLabel.setFont(unispaceFont);
         } catch (FontFormatException | IOException e) {
             e.printStackTrace();
         }
 
-        infoPanel.setBorder(new LineBorder(Color.getHSBColor(0, 0, 0.3f), 3));
-        infoPanel.setBackground(Color.BLACK);
+        positionLabel.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(5, 0, 5, 5, Color.getHSBColor(0.7f, 0.5f, 1)),
+                new EmptyBorder(10, 0, 10, 0)
+        ));
 
+
+        infoPanel.setBackground(Color.BLACK);
         infoPanel.add(positionLabel, BorderLayout.NORTH);
+
+        // Adicionar JTextArea para logs
+        logTextArea = new JTextArea();
+        logTextArea.setEditable(false);
+        logTextArea.setBackground(Color.BLACK);
+        logTextArea.setForeground(Color.WHITE);
+        try {
+            InputStream is = getClass().getResourceAsStream("/Inter-Regular.ttf");
+            Font unispaceFont = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(16f);
+            logTextArea.setFont(unispaceFont);
+        } catch (FontFormatException | IOException e) {
+            e.printStackTrace();
+        }
+        logTextArea.append("Controls:\n");
+        logTextArea.append("W - Move Up\n");
+        logTextArea.append("A - Move Left\n");
+        logTextArea.append("S - Move Down\n");
+        logTextArea.append("D - Move Right\n");
+        logTextArea.append("ENTER - Save Map\n");
+        logTextArea.append("Left Click - Add Character\n");
+        logTextArea.append("Right Click - Remove Character\n");
+
+        JScrollPane logScrollPane = new JScrollPane(logTextArea);
+        logScrollPane.setBorder(new LineBorder(Color.BLACK, 1));
+
+        // Adicionar margem ao JTextArea
+        logTextArea.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(0, 0, 5, 5, Color.getHSBColor(0.7f, 0.5f, 1)),
+                new EmptyBorder(10, 10, 10, 10)
+        ));
+
+        infoPanel.add(logScrollPane, BorderLayout.CENTER);
         add(infoPanel, BorderLayout.EAST);
 
         // Adicionar ouvinte de mouse para o painel AsciiPanel
@@ -233,7 +279,7 @@ public class MapEditor extends JFrame {
         // Criação do objeto World com a largura, altura e matriz do mapa
         World world = new World(mapWidth, mapHeight);
         world.setTiles(map);
-        System.out.println("Objeto World criado com sucesso!");
+        log("Mundo criado com sucesso!");
 
         // Salvar o objeto World em um arquivo usando OutputStream
         saveWorldToFile(world, "world.save");
@@ -243,10 +289,16 @@ public class MapEditor extends JFrame {
         try (FileOutputStream file = new FileOutputStream(fileName);
              ObjectOutputStream out = new ObjectOutputStream(file)) {
             out.writeObject(world);
-            System.out.println("World salvo em " + fileName);
+            log("World salvo em " + fileName);
         } catch (IOException e) {
-            System.err.println("Erro ao salvar o mundo: " + e.getMessage());
+            log("Erro ao salvar o mundo: " + e.getMessage());
         }
+    }
+
+    private void log(String message) {
+        System.out.println(message);
+        logTextArea.append(message + "\n");
+        logTextArea.setCaretPosition(logTextArea.getDocument().getLength());
     }
 
     public static void main(String[] args) {
