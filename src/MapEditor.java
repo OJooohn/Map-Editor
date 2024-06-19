@@ -13,6 +13,9 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class MapEditor extends JFrame {
     private AsciiPanel terminal;
@@ -35,6 +38,41 @@ public class MapEditor extends JFrame {
     private boolean isLeftMouseButton = false; // Estado do botão esquerdo do mouse
     private boolean isRightMouseButton = false; // Estado do botão direito do mouse
     private boolean isCtrlPressed = false; // Estado da tecla Ctrl
+    private World dungeonMap;
+
+    public void readWorld(){
+        String userHome = System.getProperty("user.home");
+        String desktopPath = userHome + File.separator + "Desktop";
+
+        Path worldPath = Paths.get(desktopPath + "\\World\\world.save").getParent();
+
+        File newFolder = new File(desktopPath + "\\World");
+
+        if (newFolder.exists()) {
+
+            if(Files.exists(worldPath)) {
+                try {
+                    ObjectInputStream os = new ObjectInputStream(new FileInputStream(desktopPath + "\\World\\world.save"));
+                    dungeonMap = (World) os.readObject();
+                    showPopup("Mundo carregado", desktopPath + "\\World\\world.save" + "carregado com sucesso!");
+
+                    map = dungeonMap.getTiles();
+                } catch (ClassNotFoundException e){
+                    e.printStackTrace();
+                } catch (FileNotFoundException e){
+                    e.printStackTrace();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+            } else {
+                showPopup("Erro ao carregar mundo", "Arquivo nao encontrado: " + desktopPath + "\\World\\world.save");
+            }
+
+        } else {
+            showPopup("Erro ao carregar mundo", "Caminho nao encontrado: " + desktopPath + "\\World");
+            newFolder.mkdirs();
+        }
+    }
 
     public MapEditor() {
         super("Map Editor");
@@ -45,7 +83,7 @@ public class MapEditor extends JFrame {
         map = new char[mapWidth][mapHeight];
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
-                    map[x][y] = (char) 0;
+                map[x][y] = (char) 0;
             }
         }
         // White Default Border
@@ -151,37 +189,39 @@ public class MapEditor extends JFrame {
         } catch (FontFormatException | IOException e) {
             e.printStackTrace();
         }
-        logTextArea.append("-------------- MOVE MAP -------------\n");
+        logTextArea.append("----------- CONTROLES MAPA ----------\n");
         logTextArea.append("\n");
-        logTextArea.append("W - Move Up\n");
-        logTextArea.append("A - Move Left\n");
-        logTextArea.append("S - Move Down\n");
-        logTextArea.append("D - Move Right\n");
-        logTextArea.append("\n");
-
-        logTextArea.append("------------- MAP UTILITY ------------\n");
-        logTextArea.append("\n");
-        logTextArea.append("ENTER - Save Map\n");
+        logTextArea.append("W: Cima\n");
+        logTextArea.append("A: Esquerda\n");
+        logTextArea.append("S: Baixo\n");
+        logTextArea.append("D: Direita\n");
         logTextArea.append("\n");
 
-        logTextArea.append("--------- CHARACTER UTILITY ---------\n");
+        logTextArea.append("---------- MAPA UTILIDADES ----------\n");
         logTextArea.append("\n");
-        logTextArea.append("Q - Change Character Border\n");
+        logTextArea.append("ENTER: Salvar Mapa\n");
+        logTextArea.append("R: Carregar Mapa\n");
         logTextArea.append("\n");
-        logTextArea.append("-----------------------------------------\n");
+
+        logTextArea.append("------- CARACTERE UTILIDADES -------\n");
         logTextArea.append("\n");
-        logTextArea.append("Left Click - Add Character\n");
-        logTextArea.append("Hold - Add Border Square\n");
-        logTextArea.append("+ CTRL - Add Full Square\n");
+        logTextArea.append("Q: Mudar Caractere Borda\n");
         logTextArea.append("\n");
-        logTextArea.append("-----------------------------------------\n");
+        logTextArea.append("------------------------------------\n");
         logTextArea.append("\n");
-        logTextArea.append("Mid Click - Select Character In Position\n");
+        logTextArea.append("Mouse Esquerdo: Adicionar Caractere\n");
+        logTextArea.append("Segurar: Retangulo nao preenchido\n");
+        logTextArea.append(" + CTRL: Retangulo preenchido\n");
         logTextArea.append("\n");
-        logTextArea.append("-----------------------------------------\n");
+        logTextArea.append("------------------------------------\n");
         logTextArea.append("\n");
-        logTextArea.append("Right Click - Remove Character\n");
-        logTextArea.append("Hold - Delete in Square\n");
+        logTextArea.append("Mouse Meio: \n");
+        logTextArea.append("Selecionar Caractere na Posicao\n");
+        logTextArea.append("\n");
+        logTextArea.append("------------------------------------\n");
+        logTextArea.append("\n");
+        logTextArea.append("Mouse Direito: Remover Caractere\n");
+        logTextArea.append("Segurar: Remover Area (Retangulo)\n");
 
 
         JScrollPane logScrollPane = new JScrollPane(logTextArea);
@@ -320,6 +360,9 @@ public class MapEditor extends JFrame {
                         break;
                     case KeyEvent.VK_Q:
                         fillBorder(selectedChar);
+                        break;
+                    case KeyEvent.VK_R:
+                        readWorld();
                         break;
                     case KeyEvent.VK_CONTROL: // Ctrl key pressed
                         isCtrlPressed = true;
@@ -480,6 +523,7 @@ public class MapEditor extends JFrame {
         File newFolder = new File(desktopPath + "\\World");
 
         if (!newFolder.exists()) {
+
             // Tenta criar o diretório
             if (newFolder.mkdirs()) {
                 System.out.println("Diretório criado com sucesso: " + desktopPath + "\\World");
