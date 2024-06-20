@@ -103,7 +103,7 @@ também melhorando a interatividade entre o usuário e o jogo, pois o usuário p
 - Para mudar, selecione o caractere com as cores desejadas e aperte a tecla Q
 
 ### Desenhar no Mapa
-- Botão Esquerdo do Mouse: adicionar caractere na posição (X,Y) do mapa
+- Botão Esquerdo do Mouse: adicionar caractere na posição (X, Y) do mapa
 - Botão Direito do Mouse: remover caractere na posição (X, Y) do mapa
 
 #### Truques
