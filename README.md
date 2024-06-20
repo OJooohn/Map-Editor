@@ -35,7 +35,7 @@ o mapa, do jeito que você quiser.
 **Descrição**: Classe responsável por representar o estado do mapa (mundo), que inclui as matrizes de caracteres e cores
 
 **Relações**:
-- A clasee `MapEditor` pode criar ou manipular instâncias da classe, para salvar e carregar mapas
+- A classe `MapEditor` pode criar ou manipular instâncias da classe, para salvar e carregar mapas
 
 ## Como Executar o Projeto
 
