@@ -44,8 +44,8 @@ o mapa, do jeito que você quiser.
 - Ambiente de Desenvolvimento Integrado (IDE) como IntelliJ IDEA ou Eclipse
 
 ### Método 1
-1. Baixar o arquivo .zip e extrair para sua Área de Trabalho
-2. Ir para o diretório que foi extraído, e executar o arquivo `mapEditor.jar`
+1. Baixar o [arquivo .zip](https://github.com/OJooohn/Map-Editor/raw/main/MapEditor.zip) e extrair para sua Área de Trabalho
+2. Na Área de Trabalho, execute o arquivo `mapEditor.jar`
 
 ### Método 2
 1. Clone o repositório do projeto para sua máquina local.
