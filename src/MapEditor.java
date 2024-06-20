@@ -125,18 +125,47 @@ public class MapEditor extends JFrame {
             String imagePath = "images/" + i + ".png";
             File imageFile = new File(imagePath);
 
-            ImageIcon icon = new ImageIcon(imagePath);
+            if(imageFile.exists()){
+                ImageIcon icon = new ImageIcon(imagePath);
 
-            Image img = icon.getImage();
-            Image resized = img.getScaledInstance(48, 48, java.awt.Image.SCALE_SMOOTH);
+                Image img = icon.getImage();
+                Image resized = img.getScaledInstance(48, 48, java.awt.Image.SCALE_SMOOTH);
 
-            ImageIcon resizedIcon = new ImageIcon(resized);
+                ImageIcon resizedIcon = new ImageIcon(resized);
 
-            charButton.setIcon(resizedIcon);
+                charButton.setIcon(resizedIcon);
 
-            charButton.setPreferredSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
-            charButton.setMinimumSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
-            charButton.setMaximumSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
+                charButton.setPreferredSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
+                charButton.setMinimumSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
+                charButton.setMaximumSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
+            } else {
+
+                String userHome = System.getProperty("user.home");
+                String desktopPath = userHome + File.separator + "Desktop";
+
+                Path worldPath = Paths.get(desktopPath + "\\MapEditor\\").getParent();
+
+                Path imagesPath = Paths.get(desktopPath + "\\MapEditor\\images");
+
+
+                if (Files.exists(imagesPath)) {
+                    Path imgPath = Paths.get(desktopPath + "\\MapEditor\\images\\" + i + ".png");
+
+                    ImageIcon icon = new ImageIcon(String.valueOf(imgPath));
+                    Image img = icon.getImage();
+                    Image resized = img.getScaledInstance(48, 48, java.awt.Image.SCALE_SMOOTH);
+
+                    ImageIcon resizedIcon = new ImageIcon(resized);
+
+                    charButton.setIcon(resizedIcon);
+
+                    charButton.setPreferredSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
+                    charButton.setMinimumSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
+                    charButton.setMaximumSize(new Dimension(resizedIcon.getIconWidth(), resizedIcon.getIconHeight()));
+                } else {
+                    charButton.setText(String.valueOf(c));
+                }
+            }
 
             charButton.setOpaque(false);
             charButton.setContentAreaFilled(false);
