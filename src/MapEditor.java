@@ -274,14 +274,64 @@ public class MapEditor extends JFrame {
         JPanel colorPalettePanel = new JPanel();
         colorPalettePanel.setLayout(new GridLayout(4, 7));
         String[] colorNames = {
-                "Branco", "Amarelo", "Dourado", "Laranja", "Rosa", "Magenta", "Salmão", "Bege",
-                "Marrom Claro", "Prata", "Verde Claro", "Vermelho", "Cinza Claro", "Azul Claro",
-                "Oliva", "Roxo", "Marrom", "Cinza Escuro", "Turquesa", "Verde", "Aqua", "Lime",
-                "Teal", "Verde Escuro", "Azul", "Azul Escuro", "Navy", "Preto"
+                "Vermelho1", "Vermelho2", "Vermelho3", "Laranja1", "Laranja2", "Laranja3", "Amarelo1", "Amarelo2",
+                "Verde1", "Verde2", "Verde3", "Azul1", "Azul2", "Azul3",
+                "Roxo1", "Roxo2", "Rosa1", "Rosa2", "Marrom1", "Marrom2", "Bege1", "Bege2",
+                "Cinza1", "Cinza2", "Preto1", "Preto2", "Branco1", "Branco2"
         };
 
         Color[] colors = {
-                new Color(255, 255, 255), new Color(255, 255, 0), new Color(255, 215, 0), new Color(255, 140, 0), new Color(255, 105, 180), new Color(107, 0, 107), new Color(250, 128, 114), new Color(245, 245, 220), new Color(205, 133, 63), new Color(192, 192, 192), new Color(144, 238, 144), new Color(139, 0, 0), new Color(136, 136, 136), new Color(135, 206, 250), new Color(128, 128, 0), new Color(128, 0, 128), new Color(114, 56, 0, 255), new Color(72, 72, 72), new Color(64, 224, 208), new Color(93, 176, 3), new Color(0, 255, 255), new Color(0, 255, 0), new Color(61, 130, 117), new Color(51, 139, 0), new Color(0, 0, 255), new Color(0, 0, 139), new Color(0, 0, 128), new Color(0, 0, 0)
+                // Vermelho
+                new Color(133, 0, 0),
+                new Color(179, 32, 18),
+                new Color(255, 241, 186),
+
+                // Laranja
+                new Color(250, 167, 41),
+                new Color(253, 193, 62),
+                new Color(102, 51, 0),
+
+                // Amarelo
+                new Color(254, 255, 78),
+                new Color(253, 255, 60),
+
+                // Verde
+                new Color(15, 84, 10),
+                new Color(73, 173, 58),
+                new Color(125, 207, 106),
+
+                // Azul
+                new Color(17, 9, 129),
+                new Color(33, 17, 158),
+                new Color(65, 34, 216),
+
+                // Roxo
+                new Color(79, 11, 75),
+                new Color(204, 126, 200),
+
+                // Rosa
+                new Color(255, 213, 226, 255),
+                new Color(182, 105, 131),
+
+                // Marrom
+                new Color(33, 18, 16),
+                new Color(225, 177, 167),
+
+                // Bege
+                new Color(250, 251, 228),
+                new Color(246, 246, 202),
+
+                // Cinza
+                new Color(86, 86, 86),
+                new Color(223, 223, 223),
+
+                // Preto
+                new Color(0, 0, 0),
+                new Color(14, 14, 14),
+
+                // Branco
+                new Color(255, 255, 255),
+                new Color(236, 233, 236)
         };
         colorMap = new HashMap<>();
         for (int i = 0; i < colorNames.length; i++) {
