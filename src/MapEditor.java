@@ -21,34 +21,36 @@ import java.util.Map;
 
 public class MapEditor extends JFrame {
 
-    private AsciiPanel terminal;
+    private World dungeonMap;
+
+    private Mapa mapa;
+    private TerminalMapa terminalMapa;
+
     private char selectedChar = 0; // Caractere selecionado inicialmente
     private Color selectedForegroundColor = Color.WHITE; // Cor do caractere selecionado
     private Color selectedBackgroundColor = Color.BLACK; // Cor de fundo do caractere selecionado
-    private final int panelWidth = 50; // Largura do painel AsciiPanel
-    private final int panelHeight = 50; // Altura do painel AsciiPanel
-    private final int mapWidth = 450;
-    private final int mapHeight = 300;
-    private char[][] map;
-    private Color[][] foregroundColors; // Matriz para armazenar as cores do caractere
-    private Color[][] backgroundColors; // Matriz para armazenar as cores de fundo do caractere
+
     private int viewX = 0; // Coordenada X da visão
     private int viewY = 0; // Coordenada Y da visão
+
     private int previewX = -1;
     private int previewY = -1;
+
     private int startX = -1; // Coordenada X do início do arrasto
     private int startY = -1; // Coordenada Y do início do arrasto
+
     private int currentX = -1; // Coordenada X atual durante o arrasto
     private int currentY = -1; // Coordenada Y atual durante o arrasto
+
     private JLabel positionLabel; // Label para mostrar as coordenadas
     private JTextArea logTextArea; // TextArea para mostrar os logs
+
     private boolean isLeftMouseButton = false; // Estado do botão esquerdo do mouse
     private boolean isRightMouseButton = false; // Estado do botão direito do mouse
     private boolean isCtrlPressed = false; // Estado da tecla Ctrl
-    private World dungeonMap;
-    private Map<String, Color> colorMap; // Mapa para associar nomes de cores às cores reais
-
     private boolean isForegroundSelected = true; // Novo: Estado para modificar cor do caractere
+
+    private Map<String, Color> colorMap; // Mapa para associar nomes de cores às cores reais
 
     public void readWorld() {
         String userHome = System.getProperty("user.home");
@@ -65,9 +67,9 @@ public class MapEditor extends JFrame {
                     dungeonMap = (World) os.readObject();
                     showPopup("Mundo carregado", desktopPath + "\\World\\world.save" + " carregado com sucesso!");
 
-                    map = dungeonMap.getTiles();
-                    foregroundColors = dungeonMap.foregroundColor();
-                    backgroundColors = dungeonMap.backgroundColor();
+                    mapa.setTiles(dungeonMap.getTiles());
+                    mapa.setForegroundColors(dungeonMap.foregroundColor());
+                    mapa.setBackgroundColors(dungeonMap.backgroundColor());
                 } catch (ClassNotFoundException | IOException e) {
                     e.printStackTrace();
                 }
@@ -81,33 +83,222 @@ public class MapEditor extends JFrame {
         }
     }
 
+    public void fillBorder(char character, Color selectedForegroundColor, Color selectedBackgroundColor) {
+        for (int x = 0; x < mapa.getWidth(); x++) {
+            for (int y = 0; y < mapa.getHeight(); y++) {
+                if ((x == 0 || y == 0) || (x == (mapa.getWidth() - 1) || y == (mapa.getHeight() - 1))){
+                    mapa.setCharAt(x, y, character);
+                    mapa.setForegorundAt(x, y, selectedForegroundColor);
+                    mapa.setBackgroudAt(x, y, selectedBackgroundColor);
+                }
+            }
+        }
+    }
+
+    private void updatePositionLabel(int x, int y) {
+        if (x >= 0 && y >= 0) {
+            positionLabel.setText(String.format("Position: (%03d, %03d)", x, y));
+        } else {
+            positionLabel.setText("Position: (N/A, N/A)");
+        }
+    }
+
+    private void renderView() {
+        terminalMapa.getTerminal().clear();
+
+        int width = mapa.getWidth(), height = mapa.getHeight();
+
+        for (int x = 0; x < terminalMapa.getPanelWidth(); x++) {
+            for (int y = 0; y < terminalMapa.getPanelHeight(); y++) {
+                if (x + viewX < width && y + viewY < height) {
+                    char tile = mapa.getCharAt(x + viewX, y + viewY);
+                    Color foreground = mapa.getForegroundAt(x + viewX, y + viewY);
+                    Color background = mapa.getBackgroundAt(x + viewY, y + viewY);
+                    terminalMapa.getTerminal().write(tile, x, y, foreground, background);
+                }
+            }
+        }
+        // Desenhar o caractere de pré-visualização
+        if (previewX >= 0 && previewY >= 0 && previewX < width && previewY < height) {
+            terminalMapa.getTerminal().write(selectedChar, previewX - viewX, previewY - viewY, selectedForegroundColor, selectedBackgroundColor);
+        }
+        // Desenhar o retângulo de pré-visualização
+        if (startX >= 0 && startY >= 0 && currentX >= 0 && currentY >= 0) {
+            if (isLeftMouseButton) {
+                drawPreviewRectangle(startX, startY, currentX, currentY, selectedChar, selectedForegroundColor, selectedBackgroundColor, false);
+            } else if (isRightMouseButton) {
+                drawPreviewRectangle(startX, startY, currentX, currentY, (char) 0, Color.WHITE, Color.BLACK, true);
+            }
+        }
+        terminalMapa.getTerminal().repaint();
+        terminalMapa.getTerminal().requestFocusInWindow(); // Certificar-se de que o terminal está em foco após cada atualização
+    }
+
+    private void drawRectangle(int startX, int startY, int endX, int endY) {
+        int minX = Math.min(startX, endX);
+        int maxX = Math.max(startX, endX);
+        int minY = Math.min(startY, endY);
+        int maxY = Math.max(startY, endY);
+
+        int width = mapa.getWidth(), height = mapa.getHeight();
+
+        for (int x = minX; x <= maxX; x++) {
+            if (x < width && minY < height) {
+                mapa.setCharAt(x, minY, selectedChar);
+                mapa.setForegorundAt(x, minY, selectedForegroundColor);
+                mapa.setBackgroudAt(x, minY, selectedBackgroundColor);
+            }
+            if (x < width && maxY < height) {
+                mapa.setCharAt(x, maxY, selectedChar);
+                mapa.setForegorundAt(x, maxY, selectedForegroundColor);
+                mapa.setBackgroudAt(x, maxY, selectedBackgroundColor);
+            }
+        }
+
+        for (int y = minY; y <= maxY; y++) {
+            if (minX < width && y < height) {
+                mapa.setCharAt(minX, y, selectedChar);
+                mapa.setForegorundAt(minX, y, selectedForegroundColor);
+                mapa.setBackgroudAt(minX, y, selectedBackgroundColor);
+            }
+            if (maxX < width && y < height) {
+                mapa.setCharAt(maxX, y, selectedChar);
+                mapa.setForegorundAt(maxX, y, selectedForegroundColor);
+                mapa.setBackgroudAt(maxX, y, selectedBackgroundColor);
+            }
+        }
+    }
+
+    private void drawRectangleFull(int startX, int startY, int endX, int endY) {
+        int minX = Math.min(startX, endX);
+        int maxX = Math.max(startX, endX);
+        int minY = Math.min(startY, endY);
+        int maxY = Math.max(startY, endY);
+
+        int width = mapa.getWidth(), height = mapa.getHeight();
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (x < width && y < height) {
+                    mapa.setCharAt(x, y, selectedChar);
+                    mapa.setForegorundAt(x, y, selectedForegroundColor);
+                    mapa.setBackgroudAt(x, y, selectedBackgroundColor);
+                }
+            }
+        }
+    }
+
+    private void deleteInRectangle(int startX, int startY, int endX, int endY) {
+        int minX = Math.min(startX, endX);
+        int maxX = Math.max(startX, endX);
+        int minY = Math.min(startY, endY);
+        int maxY = Math.max(startY, endY);
+
+        int width = mapa.getWidth(), height = mapa.getHeight();
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (x < width && y < height) {
+                    mapa.setCharAt(x, y, (char)0);
+                    mapa.setForegorundAt(x, y, Color.WHITE);
+                    mapa.setBackgroudAt(x, y, Color.BLACK);
+                }
+            }
+        }
+    }
+
+    private void drawPreviewRectangle(int startX, int startY, int endX, int endY, char previewChar, Color fgColor, Color bgColor, boolean fill) {
+        int minX = Math.min(startX, endX) - viewX;
+        int maxX = Math.max(startX, endX) - viewX;
+        int minY = Math.min(startY, endY) - viewY;
+        int maxY = Math.max(startY, endY) - viewY;
+
+        int paneWidth = terminalMapa.getPanelWidth(), paneHeight = terminalMapa.getPanelHeight();
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (x >= 0 && x < paneWidth && y >= 0 && y < paneHeight) {
+                    if (fill || x == minX || x == maxX || y == minY || y == maxY) {
+                        terminalMapa.getTerminal().write(previewChar, x, y, fgColor, bgColor);
+                    }
+                }
+            }
+        }
+    }
+
+    private void createAndSaveWorld() {
+        // Criação do objeto World com a largura, altura e matriz do mapa
+        World world = new World(mapa.getWidth(), mapa.getHeight());
+
+        world.setTiles(mapa.getTiles());
+        world.setForegroundColor(mapa.getForegroundColors());
+        world.setBackgroundColor(mapa.getBackgroundColors());
+
+        String userHome = System.getProperty("user.home");
+        String desktopPath = userHome + File.separator + "Desktop";
+
+        File newFolder = new File(desktopPath + "\\World");
+
+        if (!newFolder.exists()) {
+            // Tenta criar o diretório
+            if (newFolder.mkdirs()) {
+                System.out.println("Diretório criado com sucesso: " + desktopPath + "\\World");
+            } else {
+                System.out.println("Falha ao criar o diretório: " + desktopPath + "\\World");
+            }
+        }
+
+        // Salvar o objeto World em um arquivo usando OutputStream
+        saveWorldToFile(world, desktopPath + "\\World\\world.save");
+    }
+
+    private void saveWorldToFile(World world, String fileName) {
+        try (FileOutputStream file = new FileOutputStream(fileName);
+             ObjectOutputStream out = new ObjectOutputStream(file)) {
+            out.writeObject(world);
+            showPopup("World criado e salvo com sucesso!", "O arquivo foi salvo no diretório: " + new File(fileName).getAbsolutePath());
+        } catch (IOException e) {
+            showPopup("Erro ao salvar o mundo: ", e.getMessage());
+        }
+    }
+
+    private void showPopup(String title, String message) {
+        JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void log(String message) {
+        System.out.println(message);
+        logTextArea.append(message + "\n");
+        logTextArea.setCaretPosition(logTextArea.getDocument().getLength());
+    }
+
     public MapEditor() {
         super("Map Editor");
+
+        mapa = new Mapa();
+
         setResizable(false);
         setLayout(new BorderLayout());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        map = new char[mapWidth][mapHeight];
-        foregroundColors = new Color[mapWidth][mapHeight];
-        backgroundColors = new Color[mapWidth][mapHeight];
-        for (int x = 0; x < mapWidth; x++) {
-            for (int y = 0; y < mapHeight; y++) {
-                map[x][y] = (char) 0;
-                foregroundColors[x][y] = Color.WHITE;
-                backgroundColors[x][y] = Color.BLACK;
+        for (int x = 0; x < mapa.getWidth(); x++) {
+            for (int y = 0; y < mapa.getHeight(); y++) {
+                mapa.setCharAt(x, y, (char)0);
+                mapa.setForegorundAt(x, y, Color.WHITE);
+                mapa.setBackgroudAt(x, y, Color.BLACK);
             }
         }
-        // White Default Border
+        // Borda branca por padrao
         fillBorder((char) 171, Color.WHITE, Color.BLACK);
 
         // Configurar o painel AsciiPanel
-        terminal = new AsciiPanel(panelWidth, panelHeight, AsciiFont.CP437_16x16);
-        terminal.setFocusable(true);
+        terminalMapa = new TerminalMapa();
 
         // Configurar o contêiner do terminal para garantir que a borda apareça corretamente
         JPanel terminalPanel = new JPanel(new BorderLayout());
         terminalPanel.setBorder(new LineBorder(Color.getHSBColor(0.7f, 0.5f, 1), 5));
-        terminalPanel.add(terminal, BorderLayout.CENTER);
+
+        terminalPanel.add(terminalMapa.getTerminal(), BorderLayout.CENTER);
 
         add(terminalPanel, BorderLayout.CENTER);
 
@@ -375,22 +566,24 @@ public class MapEditor extends JFrame {
         infoPanel.add(controlsPanel, BorderLayout.SOUTH);
 
         // Adicionar ouvinte de mouse para o painel AsciiPanel
-        terminal.addMouseListener(new MouseAdapter() {
+        terminalMapa.getTerminal().addMouseListener(new MouseAdapter() {
+            int charWidth = terminalMapa.getTerminal().getCharWidth(), charHeight = terminalMapa.getTerminal().getCharHeight();
+
             @Override
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    startX = e.getX() / terminal.getCharWidth() + viewX;
-                    startY = e.getY() / terminal.getCharHeight() + viewY;
+                    startX = e.getX() / charWidth + viewX;
+                    startY = e.getY() / charHeight + viewY;
                     isLeftMouseButton = true;
                     isRightMouseButton = false;
                 } else if (SwingUtilities.isRightMouseButton(e)) {
-                    startX = e.getX() / terminal.getCharWidth() + viewX;
-                    startY = e.getY() / terminal.getCharHeight() + viewY;
+                    startX = e.getX() / charWidth + viewX;
+                    startY = e.getY() / charHeight + viewY;
                     isLeftMouseButton = false;
                     isRightMouseButton = true;
                 } else if (SwingUtilities.isRightMouseButton(e) && SwingUtilities.isLeftMouseButton(e)) {
-                    startX = e.getX() / terminal.getCharWidth() + viewX;
-                    startY = e.getY() / terminal.getCharHeight() + viewY;
+                    startX = e.getX() / charWidth + viewX;
+                    startY = e.getY() / charHeight + viewY;
                     isLeftMouseButton = true;
                     isRightMouseButton = true;
                 }
@@ -399,8 +592,8 @@ public class MapEditor extends JFrame {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (isCtrlPressed && isLeftMouseButton) {
-                    int endX = e.getX() / terminal.getCharWidth() + viewX;
-                    int endY = e.getY() / terminal.getCharHeight() + viewY;
+                    int endX = e.getX() / charWidth + viewX;
+                    int endY = e.getY() / charHeight + viewY;
                     drawRectangleFull(startX, startY, endX, endY);
                     startX = -1;
                     startY = -1;
@@ -409,8 +602,8 @@ public class MapEditor extends JFrame {
                     isCtrlPressed = false;
                     renderView();
                 } else if (isLeftMouseButton && startX >= 0 && startY >= 0) {
-                    int endX = e.getX() / terminal.getCharWidth() + viewX;
-                    int endY = e.getY() / terminal.getCharHeight() + viewY;
+                    int endX = e.getX() / charWidth + viewX;
+                    int endY = e.getY() / charHeight + viewY;
                     drawRectangle(startX, startY, endX, endY);
                     startX = -1;
                     startY = -1;
@@ -419,8 +612,8 @@ public class MapEditor extends JFrame {
                     isLeftMouseButton = false;
                     renderView();
                 } else if (isRightMouseButton && startX >= 0 && startY >= 0) {
-                    int endX = e.getX() / terminal.getCharWidth() + viewX;
-                    int endY = e.getY() / terminal.getCharHeight() + viewY;
+                    int endX = e.getX() / charWidth + viewX;
+                    int endY = e.getY() / charHeight + viewY;
                     deleteInRectangle(startX, startY, endX, endY);
                     startX = -1;
                     startY = -1;
@@ -433,21 +626,21 @@ public class MapEditor extends JFrame {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                int x = e.getX() / terminal.getCharWidth() + viewX;
-                int y = e.getY() / terminal.getCharHeight() + viewY;
-                if (x < mapWidth && y < mapHeight) {
+                int x = e.getX() / charWidth + viewX;
+                int y = e.getY() / charHeight + viewY;
+                if (x < mapa.getWidth() && y < mapa.getHeight()) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        map[x][y] = selectedChar;
-                        foregroundColors[x][y] = selectedForegroundColor;
-                        backgroundColors[x][y] = selectedBackgroundColor;
+                        mapa.setCharAt(x, y, selectedChar);
+                        mapa.setForegorundAt(x, y, selectedForegroundColor);
+                        mapa.setBackgroudAt(x, y, selectedBackgroundColor);
                     } else if (SwingUtilities.isRightMouseButton(e)) {
-                        map[x][y] = (char) 0;
-                        foregroundColors[x][y] = Color.WHITE;
-                        backgroundColors[x][y] = Color.BLACK;
+                        mapa.setCharAt(x, y, (char) 0);
+                        mapa.setForegorundAt(x, y, Color.WHITE);
+                        mapa.setBackgroudAt(x, y, Color.BLACK);
                     } else if (SwingUtilities.isMiddleMouseButton(e)) {
-                        selectedChar = map[x][y];
-                        selectedForegroundColor = foregroundColors[x][y];
-                        selectedBackgroundColor = backgroundColors[x][y];
+                        selectedChar = mapa.getCharAt(x, y);
+                        selectedForegroundColor = mapa.getForegroundAt(x ,y);
+                        selectedBackgroundColor = mapa.getBackgroundAt(x, y);
                     }
                     renderView();
                 }
@@ -462,12 +655,14 @@ public class MapEditor extends JFrame {
             }
         });
 
-        terminal.addMouseMotionListener(new MouseAdapter() {
+        terminalMapa.getTerminal().addMouseMotionListener(new MouseAdapter() {
+            int charWidth = terminalMapa.getTerminal().getCharWidth(), charHeight = terminalMapa.getTerminal().getCharHeight();
+
             @Override
             public void mouseMoved(MouseEvent e) {
-                int x = e.getX() / terminal.getCharWidth() + viewX;
-                int y = e.getY() / terminal.getCharHeight() + viewY;
-                if (x < mapWidth && y < mapHeight) {
+                int x = e.getX() / charWidth + viewX;
+                int y = e.getY() / charHeight + viewY;
+                if (x < mapa.getWidth() && y < mapa.getHeight()) {
                     previewX = x;
                     previewY = y;
                     updatePositionLabel(x, y);
@@ -478,15 +673,15 @@ public class MapEditor extends JFrame {
             @Override
             public void mouseDragged(MouseEvent e) {
                 if (startX >= 0 && startY >= 0) {
-                    currentX = e.getX() / terminal.getCharWidth() + viewX;
-                    currentY = e.getY() / terminal.getCharHeight() + viewY;
+                    currentX = e.getX() / charWidth + viewX;
+                    currentY = e.getY() / charHeight + viewY;
                     renderView();
                 }
             }
         });
 
         // Adicionar ouvinte de teclado para movimentação e criação do objeto World
-        terminal.addKeyListener(new KeyAdapter() {
+        terminalMapa.getTerminal().addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 switch (e.getKeyCode()) {
@@ -494,13 +689,13 @@ public class MapEditor extends JFrame {
                         if (viewY > 0) viewY--;
                         break;
                     case KeyEvent.VK_S: // Move down
-                        if (viewY < mapHeight - panelHeight) viewY++;
+                        if (viewY < mapa.getHeight() - terminalMapa.getPanelHeight()) viewY++;
                         break;
                     case KeyEvent.VK_A: // Move left
                         if (viewX > 0) viewX--;
                         break;
                     case KeyEvent.VK_D: // Move right
-                        if (viewX < mapWidth - panelWidth) viewX++;
+                        if (viewX < mapa.getWidth() - terminalMapa.getPanelWidth()) viewX++;
                         break;
                     case KeyEvent.VK_Q:
                         fillBorder(selectedChar, selectedForegroundColor, selectedBackgroundColor);
@@ -526,7 +721,7 @@ public class MapEditor extends JFrame {
             }
         });
 
-        terminal.addKeyListener(new KeyAdapter() {
+        terminalMapa.getTerminal().addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
@@ -542,182 +737,9 @@ public class MapEditor extends JFrame {
 
         pack();
         setVisible(true);
-        terminal.requestFocusInWindow(); // Certificar-se de que o terminal está em foco
+
+        terminalMapa.getTerminal().requestFocusInWindow(); // Certificar-se de que o terminal está em foco
         renderView();
-    }
-
-    public void fillBorder(char character, Color selectedForegroundColor, Color selectedBackgroundColor) {
-        for (int x = 0; x < mapWidth; x++) {
-            for (int y = 0; y < mapHeight; y++) {
-                if ((x == 0 || y == 0) || (x == (mapWidth - 1) || y == (mapHeight - 1))){
-                    map[x][y] = character;
-                    foregroundColors[x][y] = selectedForegroundColor;
-                    backgroundColors[x][y] = selectedBackgroundColor;
-                }
-            }
-        }
-    }
-
-    private void updatePositionLabel(int x, int y) {
-        if (x >= 0 && y >= 0) {
-            positionLabel.setText(String.format("Position: (%03d, %03d)", x, y));
-        } else {
-            positionLabel.setText("Position: (N/A, N/A)");
-        }
-    }
-
-    private void renderView() {
-        terminal.clear();
-        for (int x = 0; x < panelWidth; x++) {
-            for (int y = 0; y < panelHeight; y++) {
-                if (x + viewX < mapWidth && y + viewY < mapHeight) {
-                    terminal.write(map[x + viewX][y + viewY], x, y, foregroundColors[x + viewX][y + viewY], backgroundColors[x + viewX][y + viewY]);
-                }
-            }
-        }
-        // Desenhar o caractere de pré-visualização
-        if (previewX >= 0 && previewY >= 0 && previewX < mapWidth && previewY < mapHeight) {
-            terminal.write(selectedChar, previewX - viewX, previewY - viewY, selectedForegroundColor, selectedBackgroundColor);
-        }
-        // Desenhar o retângulo de pré-visualização
-        if (startX >= 0 && startY >= 0 && currentX >= 0 && currentY >= 0) {
-            if (isLeftMouseButton) {
-                drawPreviewRectangle(startX, startY, currentX, currentY, selectedChar, selectedForegroundColor, selectedBackgroundColor, false);
-            } else if (isRightMouseButton) {
-                drawPreviewRectangle(startX, startY, currentX, currentY, (char) 0, Color.WHITE, Color.BLACK, true);
-            }
-        }
-        terminal.repaint();
-        terminal.requestFocusInWindow(); // Certificar-se de que o terminal está em foco após cada atualização
-    }
-
-    private void drawRectangle(int startX, int startY, int endX, int endY) {
-        int minX = Math.min(startX, endX);
-        int maxX = Math.max(startX, endX);
-        int minY = Math.min(startY, endY);
-        int maxY = Math.max(startY, endY);
-
-        for (int x = minX; x <= maxX; x++) {
-            if (x < mapWidth && minY < mapHeight) {
-                map[x][minY] = selectedChar;
-                foregroundColors[x][minY] = selectedForegroundColor;
-                backgroundColors[x][minY] = selectedBackgroundColor;
-            }
-            if (x < mapWidth && maxY < mapHeight) {
-                map[x][maxY] = selectedChar;
-                foregroundColors[x][maxY] = selectedForegroundColor;
-                backgroundColors[x][maxY] = selectedBackgroundColor;
-            }
-        }
-
-        for (int y = minY; y <= maxY; y++) {
-            if (minX < mapWidth && y < mapHeight) {
-                map[minX][y] = selectedChar;
-                foregroundColors[minX][y] = selectedForegroundColor;
-                backgroundColors[minX][y] = selectedBackgroundColor;
-            }
-            if (maxX < mapWidth && y < mapHeight) {
-                map[maxX][y] = selectedChar;
-                foregroundColors[maxX][y] = selectedForegroundColor;
-                backgroundColors[maxX][y] = selectedBackgroundColor;
-            }
-        }
-    }
-
-    private void drawRectangleFull(int startX, int startY, int endX, int endY) {
-        int minX = Math.min(startX, endX);
-        int maxX = Math.max(startX, endX);
-        int minY = Math.min(startY, endY);
-        int maxY = Math.max(startY, endY);
-
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                if (x < mapWidth && y < mapHeight) {
-                    map[x][y] = selectedChar;
-                    foregroundColors[x][y] = selectedForegroundColor;
-                    backgroundColors[x][y] = selectedBackgroundColor;
-                }
-            }
-        }
-    }
-
-    private void deleteInRectangle(int startX, int startY, int endX, int endY) {
-        int minX = Math.min(startX, endX);
-        int maxX = Math.max(startX, endX);
-        int minY = Math.min(startY, endY);
-        int maxY = Math.max(startY, endY);
-
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                if (x < mapWidth && y < mapHeight) {
-                    map[x][y] = (char) 0;
-                    foregroundColors[x][y] = Color.WHITE;
-                    backgroundColors[x][y] = Color.BLACK;
-                }
-            }
-        }
-    }
-
-    private void drawPreviewRectangle(int startX, int startY, int endX, int endY, char previewChar, Color fgColor, Color bgColor, boolean fill) {
-        int minX = Math.min(startX, endX) - viewX;
-        int maxX = Math.max(startX, endX) - viewX;
-        int minY = Math.min(startY, endY) - viewY;
-        int maxY = Math.max(startY, endY) - viewY;
-
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                if (x >= 0 && x < panelWidth && y >= 0 && y < panelHeight) {
-                    if (fill || x == minX || x == maxX || y == minY || y == maxY) {
-                        terminal.write(previewChar, x, y, fgColor, bgColor);
-                    }
-                }
-            }
-        }
-    }
-
-    private void createAndSaveWorld() {
-        // Criação do objeto World com a largura, altura e matriz do mapa
-        World world = new World(mapWidth, mapHeight);
-        world.setTiles(map);
-        world.setForegroundColor(foregroundColors);
-        world.setBackgroundColor(backgroundColors);
-
-        String userHome = System.getProperty("user.home");
-        String desktopPath = userHome + File.separator + "Desktop";
-
-        File newFolder = new File(desktopPath + "\\World");
-
-        if (!newFolder.exists()) {
-            // Tenta criar o diretório
-            if (newFolder.mkdirs()) {
-                System.out.println("Diretório criado com sucesso: " + desktopPath + "\\World");
-            } else {
-                System.out.println("Falha ao criar o diretório: " + desktopPath + "\\World");
-            }
-        }
-
-        // Salvar o objeto World em um arquivo usando OutputStream
-        saveWorldToFile(world, desktopPath + "\\World\\world.save");
-    }
-
-    private void saveWorldToFile(World world, String fileName) {
-        try (FileOutputStream file = new FileOutputStream(fileName);
-             ObjectOutputStream out = new ObjectOutputStream(file)) {
-            out.writeObject(world);
-            showPopup("World criado e salvo com sucesso!", "O arquivo foi salvo no diretório: " + new File(fileName).getAbsolutePath());
-        } catch (IOException e) {
-            showPopup("Erro ao salvar o mundo: ", e.getMessage());
-        }
-    }
-
-    private void showPopup(String title, String message) {
-        JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void log(String message) {
-        System.out.println(message);
-        logTextArea.append(message + "\n");
-        logTextArea.setCaretPosition(logTextArea.getDocument().getLength());
     }
 
     public static void main(String[] args) {

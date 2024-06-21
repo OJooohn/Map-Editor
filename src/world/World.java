@@ -1,7 +1,6 @@
 package world;
 
 import Entity.Player;
-import Ui.Exceptions.OutOfMapException;
 
 import java.awt.*;
 import java.io.Serializable;
@@ -142,20 +141,6 @@ public class World implements Serializable {
         drawTile(21, 17, (char)254);
         drawTile(21, 18, (char)254);
         drawTile(22, 18, (char)254);
-    }
-
-    public boolean isPassable(int x, int y) throws OutOfMapException {
-        isOutOfBounds(x, y);
-        return passableTiles[x][y];
-    }
-
-    public boolean isOutOfBounds(int x, int y) throws OutOfMapException {
-        if(x < 0 || x >= width || y < 0 || y >= height) {
-            throw new OutOfMapException("Player getting out of bounds (dungeonMap)");
-        }
-        else {
-            return false;
-        }
     }
 
     /*
