@@ -68,8 +68,7 @@ public class MapEditor extends JFrame {
                     showPopup("Mundo carregado", desktopPath + "\\World\\world.save" + " carregado com sucesso!");
 
                     mapa.setTiles(dungeonMap.getTiles());
-                    mapa.setForegroundColors(dungeonMap.foregroundColor());
-                    mapa.setBackgroundColors(dungeonMap.backgroundColor());
+
                 } catch (ClassNotFoundException | IOException e) {
                     e.printStackTrace();
                 }
@@ -113,7 +112,7 @@ public class MapEditor extends JFrame {
                 if (x + viewX < width && y + viewY < height) {
                     char tile = mapa.getCharAt(x + viewX, y + viewY);
                     Color foreground = mapa.getForegroundAt(x + viewX, y + viewY);
-                    Color background = mapa.getBackgroundAt(x + viewY, y + viewY);
+                    Color background = mapa.getBackgroundAt(x + viewX, y + viewY);  // Correção aqui
                     terminalMapa.getTerminal().write(tile, x, y, foreground, background);
                 }
             }
@@ -231,8 +230,6 @@ public class MapEditor extends JFrame {
         World world = new World(mapa.getWidth(), mapa.getHeight());
 
         world.setTiles(mapa.getTiles());
-        world.setForegroundColor(mapa.getForegroundColors());
-        world.setBackgroundColor(mapa.getBackgroundColors());
 
         String userHome = System.getProperty("user.home");
         String desktopPath = userHome + File.separator + "Desktop";
@@ -258,18 +255,13 @@ public class MapEditor extends JFrame {
             out.writeObject(world);
             showPopup("World criado e salvo com sucesso!", "O arquivo foi salvo no diretório: " + new File(fileName).getAbsolutePath());
         } catch (IOException e) {
+            e.printStackTrace();
             showPopup("Erro ao salvar o mundo: ", e.getMessage());
         }
     }
 
     private void showPopup(String title, String message) {
         JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void log(String message) {
-        System.out.println(message);
-        logTextArea.append(message + "\n");
-        logTextArea.setCaretPosition(logTextArea.getDocument().getLength());
     }
 
     public MapEditor() {
@@ -283,7 +275,7 @@ public class MapEditor extends JFrame {
 
         for (int x = 0; x < mapa.getWidth(); x++) {
             for (int y = 0; y < mapa.getHeight(); y++) {
-                mapa.setCharAt(x, y, (char)0);
+                mapa.setCharAt(x, y, (char) 0);
                 mapa.setForegorundAt(x, y, Color.WHITE);
                 mapa.setBackgroudAt(x, y, Color.BLACK);
             }
@@ -465,10 +457,10 @@ public class MapEditor extends JFrame {
         JPanel colorPalettePanel = new JPanel();
         colorPalettePanel.setLayout(new GridLayout(4, 7));
         String[] colorNames = {
-                "Vermelho1", "Vermelho2", "Vermelho3", "Laranja1", "Laranja2", "Laranja3", "Amarelo1", "Amarelo2",
-                "Verde1", "Verde2", "Verde3", "Azul1", "Azul2", "Azul3",
-                "Roxo1", "Roxo2", "Rosa1", "Rosa2", "Marrom1", "Marrom2", "Bege1", "Bege2",
-                "Cinza1", "Cinza2", "Preto1", "Preto2", "Branco1", "Branco2"
+                "Vermelho Escuro", "Vermelho Medio", "Vermelho Claro", "Laranja Escuro", "Laranja Medio", "Laranja Queimado", "Amarelo Claro", "Amarelo Medio",
+                "Verde EScuro", "Verde Medio", "Verde Claro", "Azul Escuro", "Azul Medio", "Azul Claro",
+                "Roxo Escuro", "Roxo Claro", "Rosa Claro", "Rosa Medio", "Marrom Escuro", "Marrom Claro", "Bege Claro", "Bege Medio",
+                "Cinza Escuro", "Cinza Claro", "Preto", "Preto Medio", "Branco", "Branco Sujo"
         };
 
         Color[] colors = {

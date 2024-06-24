@@ -1,3 +1,5 @@
+import world.Tiles;
+
 import java.awt.*;
 
 public class Mapa {
@@ -5,37 +7,22 @@ public class Mapa {
     private final int mapWidth = 450;
     private final int mapHeight = 300;
 
-    private char[][] tiles;
-    private Color[][] foregroundColors; // Matriz para armazenar as cores do caractere
-    private Color[][] backgroundColors; // Matriz para armazenar as cores de fundo do caractere
+    private Tiles[][] tiles;
 
     public Mapa() {
-        this.tiles = new char[mapWidth][mapHeight];
-        this.foregroundColors = new Color[mapWidth][mapHeight];
-        this.backgroundColors = new Color[mapWidth][mapHeight];
+        this.tiles = new Tiles[mapWidth][mapHeight];
+        for (int x = 0; x < getWidth(); x++) {
+            for (int y = 0; y < getHeight(); y++) {
+                tiles[x][y] = new Tiles((char) 0, true, Color.WHITE, Color.BLACK);
+            }
+        }
     }
 
-    public Color[][] getBackgroundColors() {
-        return backgroundColors;
-    }
-
-    public void setBackgroundColors(Color[][] backgroundColors) {
-        this.backgroundColors = backgroundColors;
-    }
-
-    public Color[][] getForegroundColors() {
-        return foregroundColors;
-    }
-
-    public void setForegroundColors(Color[][] foregroundColors) {
-        this.foregroundColors = foregroundColors;
-    }
-
-    public char[][] getTiles() {
+    public Tiles[][] getTiles() {
         return tiles;
     }
 
-    public void setTiles(char[][] tiles) {
+    public void setTiles(Tiles[][] tiles) {
         this.tiles = tiles;
     }
 
@@ -48,27 +35,27 @@ public class Mapa {
     }
 
     public char getCharAt(int x, int y){
-        return tiles[x][y];
+        return tiles[x][y].getIcon();
     }
 
     public void setCharAt(int x, int y, char c){
-        tiles[x][y] = c;
+        tiles[x][y].setIcon(c);
     }
 
     public Color getForegroundAt(int x, int y){
-        return foregroundColors[x][y];
+        return tiles[x][y].getForegroundColor();
     }
 
     public void setForegorundAt(int x, int y, Color color){
-        foregroundColors[x][y] = color;
+        tiles[x][y].setForegroundColor(color);
     }
 
     public Color getBackgroundAt(int x, int y){
-        return backgroundColors[x][y];
+        return tiles[x][y].getBackgroundColor();
     }
 
     public void setBackgroudAt(int x, int y, Color color){
-        backgroundColors[x][y] = color;
+        tiles[x][y].setBackgroundColor(color);
     }
 
 }
