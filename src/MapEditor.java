@@ -1,5 +1,6 @@
 import asciiPanel.AsciiFont;
 import asciiPanel.AsciiPanel;
+import world.EnemyOnMap;
 import world.World;
 
 import javax.swing.*;
@@ -17,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class MapEditor extends JFrame {
@@ -68,6 +70,7 @@ public class MapEditor extends JFrame {
                     showPopup("Mundo carregado", desktopPath + "\\World\\world.save" + " carregado com sucesso!");
 
                     mapa.setTiles(dungeonMap.getTiles());
+                    mapa.setInimigosOnMap(dungeonMap.getEnemiesOnMap());
 
                 } catch (ClassNotFoundException | IOException e) {
                     e.printStackTrace();
@@ -110,10 +113,21 @@ public class MapEditor extends JFrame {
         for (int x = 0; x < terminalMapa.getPanelWidth(); x++) {
             for (int y = 0; y < terminalMapa.getPanelHeight(); y++) {
                 if (x + viewX < width && y + viewY < height) {
-                    char tile = mapa.getCharAt(x + viewX, y + viewY);
+                    boolean enemyOnMap = false;
                     Color foreground = mapa.getForegroundAt(x + viewX, y + viewY);
-                    Color background = mapa.getBackgroundAt(x + viewX, y + viewY);  // Correção aqui
-                    terminalMapa.getTerminal().write(tile, x, y, foreground, background);
+                    Color background = mapa.getBackgroundAt(x + viewX, y + viewY);
+
+                    for(EnemyOnMap enemy : mapa.getInimigosOnMap()){
+                        if(enemy.getX() == x + viewX && enemy.getY() == y + viewY){
+                            terminalMapa.getTerminal().write(enemy.getIcon(), x, y, foreground, background);
+                            enemyOnMap = true;
+                            break;
+                        }
+                    }
+                    if(!enemyOnMap){
+                        char tile = mapa.getCharAt(x + viewX, y + viewY);
+                        terminalMapa.getTerminal().write(tile, x, y, foreground, background);
+                    }
                 }
             }
         }
@@ -230,6 +244,11 @@ public class MapEditor extends JFrame {
         World world = new World(mapa.getWidth(), mapa.getHeight());
 
         world.setTiles(mapa.getTiles());
+        world.setEnemiesOnMap(mapa.getInimigosOnMap());
+        System.out.println("New Map Save:");
+        for(EnemyOnMap en : world.getEnemiesOnMap()){
+            System.out.println( "X: " + en.getX() + " Y: " + en.getY() + " Class: " + en.getClassName());
+        }
 
         String userHome = System.getProperty("user.home");
         String desktopPath = userHome + File.separator + "Desktop";
@@ -312,7 +331,7 @@ public class MapEditor extends JFrame {
                 ImageIcon icon = new ImageIcon(imagePath);
 
                 Image img = icon.getImage();
-                Image resized = img.getScaledInstance(48, 48, java.awt.Image.SCALE_SMOOTH);
+                Image resized = img.getScaledInstance(48, 48, Image.SCALE_SMOOTH);
 
                 ImageIcon resizedIcon = new ImageIcon(resized);
 
@@ -622,10 +641,55 @@ public class MapEditor extends JFrame {
                 int y = e.getY() / charHeight + viewY;
                 if (x < mapa.getWidth() && y < mapa.getHeight()) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        mapa.setCharAt(x, y, selectedChar);
+                        if(
+                                selectedChar == (char) 4 || selectedChar == (char) 5 || selectedChar == (char) 6 || selectedChar == (char) 7 || selectedChar == (char) 8 || selectedChar == (char) 9 || selectedChar == (char) 10 ||
+                                selectedChar == (char) 11 || selectedChar == (char) 12 || selectedChar == (char) 13 || selectedChar == (char) 16 || selectedChar == (char) 17 || selectedChar == (char) 20 || selectedChar == (char) 21 ||
+                                selectedChar == (char) 22 || selectedChar == (char) 23 || selectedChar == (char) 24 || selectedChar == (char) 25 || selectedChar == (char) 26 || selectedChar == (char) 27 || selectedChar == (char) 28 || selectedChar == (char) 29)
+                        {
+                            switch(selectedChar){
+                                // Todo: adicionar novos caracteres ao criar as classes no jogo
+                                case (char) 5:
+                                    mapa.adicionarInimigoOnMap(x, y, selectedChar, "Slime");
+                                    break;
+                                case (char) 21, (char) 24, (char) 25:
+                                    mapa.adicionarInimigoOnMap(x, y, selectedChar, "Esqueleto");
+                                    break;
+                                case (char) 22:
+                                    mapa.adicionarInimigoOnMap(x, y, selectedChar, "Goblin");
+                                    break;
+                                case (char) 23:
+                                    mapa.adicionarInimigoOnMap(x, y, selectedChar, "Fantasma");
+                                    break;
+                                case (char) 26:
+                                    mapa.adicionarInimigoOnMap(x, y, selectedChar, "Goblin Forte");
+                                    break;
+                            }
+
+                            mapa.setCharAt(x, y, (char) 0);
+                            mapa.setForegorundAt(x, y, selectedForegroundColor);
+                            mapa.setBackgroudAt(x, y, selectedBackgroundColor);
+                        } else {
+                            mapa.setCharAt(x, y, selectedChar);
+                            Iterator<EnemyOnMap> iterator = mapa.getInimigosOnMap().iterator();
+                            while (iterator.hasNext()) {
+                                EnemyOnMap enemy = iterator.next();
+                                if (enemy.getX() == x && enemy.getY() == y) {
+                                    iterator.remove();
+                                    break;
+                                }
+                            }
+                        }
                         mapa.setForegorundAt(x, y, selectedForegroundColor);
                         mapa.setBackgroudAt(x, y, selectedBackgroundColor);
                     } else if (SwingUtilities.isRightMouseButton(e)) {
+                        Iterator<EnemyOnMap> iterator = mapa.getInimigosOnMap().iterator();
+                        while (iterator.hasNext()) {
+                            EnemyOnMap enemy = iterator.next();
+                            if (enemy.getX() == x && enemy.getY() == y) {
+                                iterator.remove();
+                                break;
+                            }
+                        }
                         mapa.setCharAt(x, y, (char) 0);
                         mapa.setForegorundAt(x, y, Color.WHITE);
                         mapa.setBackgroudAt(x, y, Color.BLACK);

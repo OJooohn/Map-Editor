@@ -2,47 +2,36 @@ package world;
 
 import Entity.Player;
 
-import java.awt.*;
 import java.io.Serializable;
-import java.util.Random;
+import java.util.ArrayList;
 
-/*
- * Mapa completo da Dungeon
- * Deverá ter uma escala (número inteiro)x maior que o minimapa
- */
 public class World implements Serializable {
 
-    private static final long serialVersionUID = -3043187160444032741L;
+    private static final long serialVersionUID = -1772880159342581913L;
 
-    /* Size Attributes */
     private int width;
     private int height;
 
     private Tiles[][] tiles;
-
-    /* Player displaying on map */
     private Player playerOnMap;
+    private ArrayList<EnemyOnMap> enemiesOnMap = new ArrayList<>();
 
-    /* Constructor */
+    private ArrayList<Enemy> enemies;
+
     public World(int width, int height) {
         this.width = width;
         this.height = height;
 
         this.tiles = new Tiles[width][height];
+        this.enemiesOnMap = new ArrayList<>();
     }
 
-    /* Get and Set */
-
-    public int getHeight() {
-        return height;
+    public void createEnemiesOnMapList(){
+        this.enemiesOnMap = new ArrayList<>();
     }
 
-    public void setHeight(int height) {
-        this.height = height;
-    }
-
-    public Player playerOnMap() {
-        return playerOnMap;
+    public void addEnemyOnMap(int x, int y, char icon, String className){
+        enemiesOnMap.add(new EnemyOnMap(icon, x, y, className));
     }
 
     public Tiles[][] getTiles() {
@@ -53,6 +42,8 @@ public class World implements Serializable {
         this.tiles = tiles;
     }
 
+    public void createEnemiesList(){ this.enemies = new ArrayList<>(); }
+
     public int getWidth() {
         return width;
     }
@@ -61,15 +52,82 @@ public class World implements Serializable {
         this.width = width;
     }
 
-    public boolean isPassable(int x, int y) {
-        return tiles[x][y].getIsPassable();
+    public int getHeight() {
+        return height;
     }
 
-
-    public void drawPassableTile(int x, int y, char tile) {
-        if(tile == (char)0 || (tile >= (char)245 && tile <= (char)250) || (tile >= (char)224 && tile <= (char)227))
-            tiles[x][y].setPassable(true);
-        else
-            tiles[x][y].setPassable(false);
+    public void setHeight(int height) {
+        this.height = height;
     }
+
+    public Tiles getTileAt(int x, int y){
+        return tiles[x][y];
+    }
+
+    public Player getPlayerOnMap() {
+        return playerOnMap;
+    }
+
+    public void setPlayerOnMap(Player playerOnMap) {
+        this.playerOnMap = playerOnMap;
+    }
+
+    public ArrayList<EnemyOnMap> getEnemiesOnMap() {
+        return enemiesOnMap;
+    }
+
+    public void setEnemiesOnMap(ArrayList<EnemyOnMap> enemiesOnMap) {
+        this.enemiesOnMap = enemiesOnMap;
+    }
+
+    public boolean isEnemyAt(int x, int y) {
+        for(Enemy ens : enemies){
+            if(ens.getX() == x && ens.getY() == y)
+                return true;
+        }
+        return false;
+    }
+
+    public Enemy getEnemyAt(int x, int y) {
+        for(Enemy ens : enemies){
+            if(ens.getX() == x && ens.getY() == y)
+                return ens;
+        }
+        return null;
+    }
+
+    public void deleteEnemyAt(int x, int y){
+        Enemy removeEnemyIterator = null;
+
+        for(Enemy ens : enemies){
+            if(ens.getX() == x && ens.getY() == y)
+                removeEnemyIterator = ens;
+        }
+
+        if(removeEnemyIterator != null)
+            removeEnemy(removeEnemyIterator);
+
+    }
+
+    public void removeEnemy(Enemy enemy){
+        int x = enemy.getX(), y = enemy.getY();
+        this.enemies.remove(enemy);
+    }
+
+    public void addEnemyToList(Enemy newEnemy){
+        enemies.add(newEnemy);
+    }
+
+    public boolean isEnemiesEmpty(){
+        return enemies.isEmpty();
+    }
+
+    public void setEnemies(ArrayList<Enemy> enemies) {
+        this.enemies = enemies;
+    }
+
+    public ArrayList<Enemy> getEnemies(){
+        return this.enemies;
+    }
+
 }

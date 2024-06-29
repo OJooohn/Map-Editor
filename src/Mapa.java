@@ -1,13 +1,18 @@
+import world.Enemy;
+import world.EnemyOnMap;
 import world.Tiles;
 
 import java.awt.*;
+import java.io.Serializable;
+import java.util.ArrayList;
 
-public class Mapa {
+public class Mapa implements Serializable {
 
     private final int mapWidth = 450;
     private final int mapHeight = 300;
 
     private Tiles[][] tiles;
+    private ArrayList<EnemyOnMap> inimigosOnMap;
 
     public Mapa() {
         this.tiles = new Tiles[mapWidth][mapHeight];
@@ -16,6 +21,11 @@ public class Mapa {
                 tiles[x][y] = new Tiles((char) 0, true, Color.WHITE, Color.BLACK);
             }
         }
+        this.inimigosOnMap = new ArrayList<>();
+    }
+
+    public void adicionarInimigoOnMap(int x, int y, char icon, String className){
+        inimigosOnMap.add(new EnemyOnMap(icon, x, y, className));
     }
 
     public Tiles[][] getTiles() {
@@ -58,4 +68,11 @@ public class Mapa {
         tiles[x][y].setBackgroundColor(color);
     }
 
+    public ArrayList<EnemyOnMap> getInimigosOnMap() {
+        return inimigosOnMap;
+    }
+
+    public void setInimigosOnMap(ArrayList<EnemyOnMap> inimigosOnMap) {
+        this.inimigosOnMap = inimigosOnMap;
+    }
 }
